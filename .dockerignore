@@ -1,0 +1,15 @@
+# Docker ignore for Cooking Clipper
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.env
+output/
+*.log
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo

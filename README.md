@@ -21,14 +21,14 @@ python split.py pao5.mp4 output/highlights.mp4
 
 Copy `.env.example` to `.env` and tweak:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CLIP_DURATION` | `2.5` | Length of each extracted clip (seconds) |
-| `MOTION_THRESHOLD` | `0.15` | Sensitivity (0–1). Lower = more clips, Higher = fewer, stricter clips |
-| `CHANGE_THRESHOLD` | `20` | Pixel intensity diff to count as "motion" (5–50). Lower = more sensitive |
-| `BLANKING_GAP` | `3.0` | Minimum gap between consecutive clips to avoid overlap |
-| `OUTPUT_DIR` | `output` | Where to save the final video |
-| `MAX_WORKERS` | CPU count | Parallel workers for motion analysis only |
+| Variable           | Default   | Description                                                              |
+| ------------------ | --------- | ------------------------------------------------------------------------ |
+| `CLIP_DURATION`    | `2.5`     | Length of each extracted clip (seconds)                                  |
+| `MOTION_THRESHOLD` | `0.15`    | Sensitivity (0–1). Lower = more clips, Higher = fewer, stricter clips    |
+| `CHANGE_THRESHOLD` | `20`      | Pixel intensity diff to count as "motion" (5–50). Lower = more sensitive |
+| `BLANKING_GAP`     | `3.0`     | Minimum gap between consecutive clips to avoid overlap                   |
+| `OUTPUT_DIR`       | `output`  | Where to save the final video                                            |
+| `MAX_WORKERS`      | CPU count | Parallel workers for motion analysis only                                |
 
 ### Tuning Tips
 

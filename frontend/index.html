@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cooking Clipper — Motion Score Viewer</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --text-dim: #8b949e;
+        --accent: #58a6ff;
+        --green: #3fb950;
+        --orange: #d29922;
+        --red: #f85149;
+        --clip-fill: rgba(56, 139, 253, 0.15);
+        --clip-stroke: #58a6ff;
+        --cursor: #f0f6fc;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 24px;
+      }
+
+      .container {
+        max-width: 960px;
+        width: 100%;
+      }
+
+      h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        color: var(--text-dim);
+        font-size: 0.85rem;
+        margin-bottom: 20px;
+      }
+
+      /* ── Controls ── */
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+        align-items: center;
+      }
+
+      .controls label {
+        font-size: 0.8rem;
+        color: var(--text-dim);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        transition: border-color 0.15s;
+      }
+      .controls label:hover {
+        border-color: var(--accent);
+      }
+      .controls label input {
+        display: none;
+      }
+
+      #urlInput {
+        flex: 1;
+        min-width: 200px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 12px;
+        color: var(--text);
+        font-size: 0.85rem;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      #urlInput:focus {
+        border-color: var(--accent);
+      }
+
+      button {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+      button:hover {
+        opacity: 0.85;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .or-divider {
+        color: var(--text-dim);
+        font-size: 0.8rem;
+        padding: 0 4px;
+      }
+
+      /* ── Loading / Error ── */
+      .status {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        margin-bottom: 12px;
+        min-height: 1.4em;
+      }
+      .status.error {
+        color: var(--red);
+      }
+      .status.warn {
+        color: var(--orange);
+      }
+
+      /* ── Video ── */
+      video {
+        width: 100%;
+        border-radius: 8px;
+        background: #000;
+        display: block;
+        margin-bottom: 16px;
+        max-height: 540px;
+      }
+
+      /* ── Chart ── */
+      .chart-wrapper {
+        position: relative;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 0.8rem;
+        color: var(--text-dim);
+      }
+      .chart-header strong {
+        color: var(--text);
+      }
+
+      #chartCanvas {
+        display: block;
+        width: 100%;
+        height: 240px;
+        cursor: crosshair;
+        border-radius: 4px;
+      }
+
+      /* ── Stats ── */
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 0.8rem;
+        color: var(--text-dim);
+        margin-bottom: 24px;
+      }
+      .stats span {
+        white-space: nowrap;
+      }
+      .stats strong {
+        color: var(--text);
+      }
+
+      /* ── Tooltip ── */
+      #tooltip {
+        display: none;
+        position: absolute;
+        background: #1c2333;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 0.78rem;
+        pointer-events: none;
+        z-index: 10;
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+      #tooltip.visible {
+        display: block;
+      }
+
+      /* ── Empty state ── */
+      .empty-state {
+        text-align: center;
+        padding: 48px 24px;
+        color: var(--text-dim);
+      }
+      .empty-state svg {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+      }
+      .empty-state p {
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 12px;
+        }
+        #urlInput {
+          min-width: 120px;
+        }
+        .controls label {
+          font-size: 0.75rem;
+          padding: 5px 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎥 Cooking Clipper</h1>
+      <p class="subtitle">
+        Motion score visualizer — inspect which segments were extracted
+      </p>
+
+      <!-- ── Controls ── -->
+      <div class="controls">
+        <input
+          type="text"
+          id="urlInput"
+          placeholder="http://seaweedfs.local/Suno/IMG_0128.mov"
+          autocomplete="off"
+          spellcheck="false"
+          onkeydown="if (event.key === 'Enter') loadFromUrl();"
+        />
+        <button id="loadBtn" onclick="loadFromUrl()">Load</button>
+        <span class="or-divider">or</span>
+        <label>
+          📁 Scores JSON
+          <input type="file" accept=".json" onchange="loadLocalFiles(event)" />
+        </label>
+        <label>
+          🎬 Video
+          <input
+            type="file"
+            accept="video/*"
+            onchange="loadLocalFiles(event)"
+          />
+        </label>
+      </div>
+
+      <div id="status" class="status"></div>
+
+      <!-- ── Empty State ── -->
+      <div id="emptyState" class="empty-state">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <path d="M9 10l3 3 3-3" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+        </svg>
+        <p>
+          Load a scores JSON and video to see the motion timeline.<br />
+          Use the URL bar above (when running behind the proxy server)<br />
+          or pick local files with the buttons.
+        </p>
+      </div>
+
+      <!-- ── Content (hidden initially) ── -->
+      <div id="content" style="display: none">
+        <video id="videoPlayer" controls preload="auto"></video>
+
+        <div class="chart-wrapper">
+          <div class="chart-header">
+            <span>Motion Score <strong id="chartTitle"></strong></span>
+            <span id="chartInfo"></span>
+          </div>
+          <canvas id="chartCanvas" width="920" height="240"></canvas>
+          <div id="tooltip"></div>
+        </div>
+
+        <div class="stats" id="stats"></div>
+      </div>
+    </div>
+
+    <script id="bootstrap-data" type="application/json">
+      {}
+    </script>
+    <script>
+      /* ===================================================================
+       *  Cooking Clipper — Motion Score Viewer
+       *  Fetches data directly from the S3-compatible endpoint (SeaweedFS)
+       *  via HTTP.  CORS must be enabled on the S3 server.
+       * =================================================================== */
+
+      // ── DOM refs ──
+      const urlInput = document.getElementById("urlInput");
+      const loadBtn = document.getElementById("loadBtn");
+      const statusEl = document.getElementById("status");
+      const emptyState = document.getElementById("emptyState");
+      const content = document.getElementById("content");
+      const video = document.getElementById("videoPlayer");
+      const canvas = document.getElementById("chartCanvas");
+      const ctx = canvas.getContext("2d");
+      const tooltip = document.getElementById("tooltip");
+      const chartTitle = document.getElementById("chartTitle");
+      const chartInfo = document.getElementById("chartInfo");
+      const statsEl = document.getElementById("stats");
+
+      // ── State ──
+      let scoresData = null;
+      let configData = null;
+      let peaks = [];
+      let threshold = 0;
+      let playing = false;
+      let rafId = null;
+
+      const DPR = window.devicePixelRatio || 1;
+      const CHART_HEIGHT = 240;
+
+      // ── Helpers ──
+      function setStatus(msg, type) {
+        statusEl.textContent = msg;
+        statusEl.className = "status" + (type ? " " + type : "");
+      }
+      function showContent(show) {
+        content.style.display = show ? "block" : "none";
+        emptyState.style.display = show ? "none" : "block";
+      }
+      function sec(t) {
+        return t.toFixed(1) + "s";
+      }
+
+      /**
+       * Derive scores & config URLs from a video URL on the S3 HTTP endpoint.
+       *
+       *  Video:   http://seaweedfs.local:8333/Suno/IMG_0128.mov
+       *  Scores:  http://seaweedfs.local:8333/Suno/_Score-IMG_0128_scores.json
+       *  Config:  http://seaweedfs.local:8333/Suno/_Config-IMG_0128_config.json
+       */
+      function deriveUrls(videoHttpUrl) {
+        const url = new URL(videoHttpUrl);
+        const pathParts = url.pathname.split("/").filter(Boolean);
+        if (pathParts.length < 2)
+          throw new Error("Video URL must have at least bucket + key");
+
+        const bucket = pathParts[0];
+        const key = pathParts.slice(1).join("/");
+        const filename = pathParts[pathParts.length - 1];
+        const name = filename.replace(/\.[^.]+$/, "") || filename;
+        const base = url.origin;
+
+        // SeaweedFS S3 API on port 8333 only accepts flat keys (no "/")
+        function flatKey(prefix, suffix) {
+          return `${base}/${bucket}/${prefix}-${name}${suffix}`;
+        }
+
+        return {
+          video: videoHttpUrl,
+          scores: flatKey("_Score", "_scores.json"),
+          config: flatKey("_Config", "_config.json"),
+          bucket,
+          key,
+        };
+      }
+
+      // ── Load from URL ──
+      async function loadFromUrl() {
+        const raw = urlInput.value.trim();
+        if (!raw) return;
+
+        loadBtn.disabled = true;
+        setStatus("Loading…");
+        showContent(false);
+
+        try {
+          let urls;
+          if (raw.startsWith("s3://")) {
+            // Convert s3://bucket/key → need endpoint: try bootstrap first
+            const boot = getBootstrap();
+            if (boot.s3_endpoint) {
+              const m = raw.match(/^s3:\/\/([^/]+)\/(.+)$/);
+              if (!m) throw new Error("Invalid S3 URL");
+              urls = deriveUrls(
+                boot.s3_endpoint.replace(/\/+$/, "") + "/" + m[1] + "/" + m[2],
+              );
+            } else {
+              setStatus(
+                '✗ S3 URL needs the viewer server — run "python -m src serve ' +
+                  raw +
+                  '"',
+                "error",
+              );
+              return;
+            }
+          } else {
+            // Assume direct HTTP URL to video
+            urls = deriveUrls(raw);
+          }
+
+          const [scoresResp, configResp] = await Promise.all([
+            fetch(urls.scores),
+            fetch(urls.config).catch(() => null), // config is optional
+          ]);
+
+          if (!scoresResp.ok)
+            throw new Error("Scores not found at " + urls.scores);
+
+          scoresData = await scoresResp.json();
+          configData =
+            configResp && configResp.ok ? await configResp.json() : null;
+
+          // Use the video URL directly (S3 supports Range for seeking)
+          video.src = urls.video;
+          await video.load();
+
+          await render();
+          setStatus("✅ Loaded — " + urls.video);
+        } catch (err) {
+          setStatus("✗ " + err.message, "error");
+          console.error(err);
+        } finally {
+          loadBtn.disabled = false;
+        }
+      }
+
+      // ── Load from local files ──
+      const _pending = {scores: null, video: null};
+
+      function loadLocalFiles(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.name.endsWith(".json")) _pending.scores = file;
+        else _pending.video = file;
+        if (_pending.scores && _pending.video) loadBothLocal();
+        else setStatus("Waiting for both scores JSON and video file…", "warn");
+      }
+
+      async function loadBothLocal() {
+        setStatus("Loading local files…");
+        showContent(false);
+        try {
+          scoresData = JSON.parse(await _pending.scores.text());
+          configData = null;
+          video.src = URL.createObjectURL(_pending.video);
+          await video.load();
+          await render();
+          setStatus("✅ Loaded from local files");
+        } catch (err) {
+          setStatus("✗ " + err.message, "error");
+        } finally {
+          _pending.scores = null;
+          _pending.video = null;
+        }
+      }
+
+      // ── Bootstrap from server ──
+      function getBootstrap() {
+        const el = document.getElementById("bootstrap-data");
+        try {
+          return JSON.parse(el.textContent);
+        } catch {
+          return {};
+        }
+      }
+
+      // ── Render ──
+      async function render() {
+        if (!scoresData || !video.src) return;
+
+        const rawPeaks = scoresData.peaks || [];
+        peaks = rawPeaks.map((p, i) => {
+          const startF = Array.isArray(p) ? p[0] : p.start_frame;
+          const endF = Array.isArray(p) ? p[1] : p.end_frame;
+          const score = Array.isArray(p) ? p[2] : p.score;
+          return {
+            start: startF,
+            end: endF,
+            score,
+            startSec: startF / scoresData.fps,
+            endSec: endF / scoresData.fps,
+            index: i,
+          };
+        });
+
+        const maxScore = Math.max(...scoresData.scores, 1);
+        const thresh = configData
+          ? configData.MOTION_THRESHOLD
+          : (scoresData.motion_threshold ?? 0.3);
+        threshold = maxScore * thresh;
+
+        showContent(true);
+        renderStats();
+        drawChart();
+
+        // Clean up previous session's listeners before adding fresh ones
+        video.removeEventListener("play", onPlay);
+        video.removeEventListener("pause", onPause);
+        video.removeEventListener("ended", onPause);
+        video.removeEventListener("seeked", onSeeked);
+        video.addEventListener("play", onPlay);
+        video.addEventListener("pause", onPause);
+        video.addEventListener("ended", onPause);
+        video.addEventListener("seeked", onSeeked);
+      }
+
+      function onPlay() {
+        playing = true;
+        cursorLoop();
+      }
+
+      function onPause() {
+        playing = false;
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      }
+
+      function onSeeked() {
+        drawChart();
+      }
+
+      function cursorLoop() {
+        if (!playing) return;
+        drawChart();
+        rafId = requestAnimationFrame(cursorLoop);
+      }
+
+      function renderStats() {
+        const d = scoresData;
+        let html = `
+    <span>Frames: <strong>${d.num_frames.toLocaleString()}</strong></span>
+    <span>FPS: <strong>${d.fps.toFixed(2)}</strong></span>
+    <span>Duration: <strong>${sec(d.duration)}</strong></span>
+    <span>Clips: <strong>${peaks.length}</strong></span>`;
+        if (peaks.length) {
+          const totalClipSec = peaks.reduce(
+            (s, p) => s + (p.endSec - p.startSec),
+            0,
+          );
+          html += `<span>Clips total: <strong>${sec(totalClipSec)}</strong></span>`;
+        }
+        if (configData) {
+          html += `<span>Threshold: <strong>${(configData.MOTION_THRESHOLD * 100).toFixed(0)}%</strong></span>`;
+          html += `<span>Clip window: <strong>${configData.CLIP_DURATION}s</strong></span>`;
+        }
+        statsEl.innerHTML = html;
+      }
+
+      // ── Chart ──
+      const PAD = {top: 12, right: 16, bottom: 28, left: 52};
+
+      function dprScale() {
+        const rect = canvas.getBoundingClientRect();
+        const w = rect.width,
+          h = CHART_HEIGHT;
+        if (
+          canvas.width !== Math.round(w * DPR) ||
+          canvas.height !== Math.round(h * DPR)
+        ) {
+          canvas.width = Math.round(w * DPR);
+          canvas.height = Math.round(h * DPR);
+        }
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        return {w, h};
+      }
+
+      function getChartBounds() {
+        const {w, h} = dprScale();
+        return {
+          left: PAD.left,
+          right: w - PAD.right,
+          top: PAD.top,
+          bottom: h - PAD.bottom,
+          width: w - PAD.left - PAD.right,
+          height: h - PAD.top - PAD.bottom,
+          w,
+          h,
+        };
+      }
+
+      function frameToX(frame, b) {
+        const total = scoresData.num_frames;
+        return total > 1 ? b.left + (frame / (total - 1)) * b.width : b.left;
+      }
+
+      function scoreToY(score, b) {
+        const maxSc = Math.max(...scoresData.scores, 1);
+        return b.bottom - (score / maxSc) * b.height;
+      }
+
+      function drawChart() {
+        if (!scoresData || !scoresData.scores) return;
+        const b = getChartBounds();
+        const scores = scoresData.scores;
+        const total = scores.length;
+        const maxSc = Math.max(...scores, 1);
+        const curSec = video.currentTime || 0;
+        const curFrame = curSec * scoresData.fps;
+
+        ctx.clearRect(0, 0, b.w, b.h);
+
+        // Grid
+        ctx.strokeStyle = "#21262d";
+        ctx.lineWidth = 1;
+        const numGridY = 4;
+        for (let i = 0; i <= numGridY; i++) {
+          const y = b.top + (i / numGridY) * b.height;
+          ctx.beginPath();
+          ctx.moveTo(b.left, y);
+          ctx.lineTo(b.right, y);
+          ctx.stroke();
+        }
+
+        // Clip regions
+        for (const p of peaks) {
+          const x1 = frameToX(p.start, b),
+            x2 = frameToX(p.end, b);
+          ctx.fillStyle = "rgba(56,139,253,0.12)";
+          ctx.strokeStyle = "rgba(56,139,253,0.35)";
+          ctx.lineWidth = 1;
+          ctx.fillRect(x1, b.top, x2 - x1, b.height);
+          ctx.strokeRect(x1, b.top, x2 - x1, b.height);
+        }
+
+        // Threshold line
+        const threshY = scoreToY(threshold, b);
+        ctx.strokeStyle = "rgba(210,153,34,0.5)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(b.left, threshY);
+        ctx.lineTo(b.right, threshY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(210,153,34,0.7)";
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText("threshold", b.right, threshY - 4);
+
+        // Score line
+        ctx.strokeStyle = "#58a6ff";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const step = Math.max(1, Math.floor(total / 2000));
+        for (let i = 0; i < total; i += step) {
+          const x = frameToX(i, b),
+            y = scoreToY(scores[i], b);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        if (total > 0 && (total - 1) % step !== 0) {
+          const x = frameToX(total - 1, b),
+            y = scoreToY(scores[total - 1], b);
+          ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // X labels
+        ctx.fillStyle = "rgba(139,148,158,0.6)";
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "center";
+        const duration = scoresData.duration;
+        const numLabels = Math.max(2, Math.floor(b.width / 80));
+        for (let i = 0; i <= numLabels; i++) {
+          ctx.fillText(
+            sec((i / numLabels) * duration),
+            b.left + (i / numLabels) * b.width,
+            b.h - 4,
+          );
+        }
+
+        // Y labels
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        for (let i = 0; i <= numGridY; i++) {
+          ctx.fillText(
+            (maxSc * (1 - i / numGridY)).toFixed(1),
+            b.left - 6,
+            b.top + (i / numGridY) * b.height,
+          );
+        }
+
+        // Playback cursor
+        const cx = frameToX(curFrame, b);
+        ctx.strokeStyle = "#f0f6fc";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, b.top);
+        ctx.lineTo(cx, b.bottom);
+        ctx.stroke();
+
+        chartTitle.textContent =
+          sec(curSec) +
+          (curFrame >= 0 && curFrame < scores.length
+            ? "  ·  score: " + scores[Math.round(curFrame)].toFixed(1)
+            : "");
+        chartInfo.textContent =
+          peaks.length + " clips  ·  max: " + maxSc.toFixed(1);
+      }
+
+      // Click to seek
+      canvas.addEventListener("click", (e) => {
+        if (!scoresData) return;
+        const rect = canvas.getBoundingClientRect();
+        const b = getChartBounds();
+        const relX = (e.clientX - rect.left - b.left) / b.width;
+        const frame = Math.round(
+          Math.max(0, Math.min(1, relX)) * (scoresData.num_frames - 1),
+        );
+        video.currentTime = frame / scoresData.fps;
+      });
+
+      // Hover tooltip
+      canvas.addEventListener("mousemove", (e) => {
+        if (!scoresData) {
+          tooltip.classList.remove("visible");
+          return;
+        }
+        const rect = canvas.getBoundingClientRect();
+        const b = getChartBounds();
+        const relX = (e.clientX - rect.left - b.left) / b.width;
+        const frame = Math.round(
+          Math.max(0, Math.min(1, relX)) * (scoresData.num_frames - 1),
+        );
+        const time = frame / scoresData.fps;
+        const score =
+          scoresData.scores[Math.min(frame, scoresData.scores.length - 1)];
+        const inClip = peaks.find((p) => frame >= p.start && frame <= p.end);
+        tooltip.innerHTML =
+          "<div><strong>" +
+          sec(time) +
+          "</strong>  ·  frame " +
+          frame.toLocaleString() +
+          "</div>" +
+          "<div>score: " +
+          score.toFixed(2) +
+          (inClip ? "  ·  ✂️ in clip" : "") +
+          "</div>";
+        tooltip.style.left =
+          Math.min(e.clientX - rect.left + 12, b.right - 120) + "px";
+        tooltip.style.top = e.clientY - rect.top - 40 + "px";
+        tooltip.classList.add("visible");
+      });
+      canvas.addEventListener("mouseleave", () =>
+        tooltip.classList.remove("visible"),
+      );
+
+      // Resize
+      let resizeTimer;
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => drawChart(), 100);
+      });
+
+      // ── Auto-connect if server injected bootstrap data ──
+      (function autoConnect() {
+        const boot = getBootstrap();
+        if (boot.video_url) {
+          urlInput.value = boot.video_url;
+          loadFromUrl();
+        }
+      })();
+    </script>
+  </body>
+</html>

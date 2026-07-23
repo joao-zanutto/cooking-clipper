@@ -13,7 +13,7 @@ MOTION_THRESHOLD = float(os.getenv("MOTION_THRESHOLD", "0.15"))
 CHANGE_THRESHOLD = int(os.getenv("CHANGE_THRESHOLD", "20"))
 BLANKING_GAP = float(os.getenv("BLANKING_GAP", "3.0"))
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", "output")
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", str(multiprocessing.cpu_count())))
+MAX_WORKERS = max(1, int(os.getenv("MAX_WORKERS", "0")) or multiprocessing.cpu_count())
 
 # ── S3-compatible storage ───────────────────────────────────────────────────
 S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://seaweedfs.local:8333")
