@@ -369,6 +369,7 @@ def api_process_video(bucket: str):
         change_threshold=data.get("change_threshold"),
     )
     job_name = manifest["metadata"]["name"]
+    batch_api = client.BatchV1Api()
     try:
         batch_api.create_namespaced_job(namespace=NAMESPACE, body=manifest)
         log.info("Created job %s for %s", job_name, video_key)

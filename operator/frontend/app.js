@@ -97,6 +97,18 @@
       return;
     }
 
+    // Snapshot current local slider values before fetching
+    const localParams = {};
+    videos.forEach((v, i) => {
+      if (v.clip_duration !== undefined || v.motion_threshold !== undefined || v.change_threshold !== undefined) {
+        localParams[v.key] = {
+          clip_duration: v.clip_duration,
+          motion_threshold: v.motion_threshold,
+          change_threshold: v.change_threshold,
+        };
+      }
+    });
+
     try {
       const [vResp, jResp] = await Promise.all([
         apiGet(`/api/buckets/${encodeURIComponent(currentBucket)}/videos`),
@@ -104,6 +116,17 @@
       ]);
       videos = vResp.videos || [];
       jobs = jResp.jobs || [];
+
+      // Restore local slider values that may differ from server defaults
+      videos.forEach((v) => {
+        const saved = localParams[v.key];
+        if (saved) {
+          if (saved.clip_duration !== undefined) v.clip_duration = saved.clip_duration;
+          if (saved.motion_threshold !== undefined) v.motion_threshold = saved.motion_threshold;
+          if (saved.change_threshold !== undefined) v.change_threshold = saved.change_threshold;
+        }
+      });
+
       renderVideos();
       renderJobs();
       batchBar.classList.remove("hidden");
