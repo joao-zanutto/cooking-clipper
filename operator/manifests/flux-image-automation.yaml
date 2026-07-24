@@ -64,6 +64,7 @@ spec:
       author:
         name: flux-automation
         email: flux@cooking-clipper
+      messageTemplate: 'Automated image update: {{range .Changed.Changes}}{{print .OldValue}} -> {{println .NewValue}}{{end}}[skip ci]'
   update:
     strategy: Setters
     path: ./operator/manifests
