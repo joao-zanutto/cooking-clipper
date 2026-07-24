@@ -43,7 +43,7 @@ spec:
               value: "http://192.168.15.14:9333"
             # Job configuration
             - name: JOB_IMAGE
-              value: "ghcr.io/joao-zanutto/cooking-clipper:11" # {"$imagepolicy": "flux-system:cooking-clipper"}
+              value: "ghcr.io/joao-zanutto/cooking-clipper:12" # {"$imagepolicy": "flux-system:cooking-clipper"}
             - name: JOB_IMAGE_PULL_POLICY
               value: "Always"
             - name: OPERATOR_PORT
