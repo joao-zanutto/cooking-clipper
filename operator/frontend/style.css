@@ -326,6 +326,111 @@ header h1 {
   word-break: break-all;
 }
 
+/* ── Preview buttons ─────────────────────────────────── */
+.video-card .actions .preview-btn {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  padding: 0.35rem 0.7rem;
+}
+.video-card .actions .preview-btn:hover:not(:disabled) {
+  background: var(--border);
+  border-color: var(--text-dim);
+}
+.video-card .actions .preview-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Video preview modal ─────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.modal-overlay.hidden {
+  display: none !important;
+}
+
+.modal-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.8rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  z-index: 10;
+}
+.modal-close:hover {
+  color: var(--text);
+}
+
+#modal-video {
+  width: 100%;
+  max-height: 60vh;
+  border-radius: 6px;
+  background: #000;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.modal-placeholder {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-dim);
+  font-size: 1rem;
+}
+
+.modal-chart-wrapper {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+#modal-chart {
+  display: block;
+  width: 100%;
+  height: 240px;
+  cursor: crosshair;
+  border-radius: 4px;
+}
+
+.modal-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.modal-stats strong {
+  color: var(--text);
+}
+
 /* ── Hidden ──────────────────────────────────────────── */
 .hidden {
   display: none !important;

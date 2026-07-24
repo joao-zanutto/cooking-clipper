@@ -71,13 +71,6 @@ def _is_video(key: str) -> bool:
     return ext in VIDEO_EXTS
 
 
-def _output_key_for(key: str) -> str:
-    """Return the output split key for a given video key."""
-    name, _ = os.path.splitext(key)
-    basename = os.path.basename(name)
-    return f"{S3_OUTPUT_PREFIX}Split/{basename}.mp4"
-
-
 def _list_buckets(s3) -> list[dict]:
     """List all S3 buckets.
 
@@ -138,6 +131,42 @@ def _list_videos(s3, bucket: str) -> list[dict]:
             })
     videos.sort(key=lambda v: v["key"])
     return videos
+
+
+def _output_key_for(key: str) -> str:
+    """Return the output split key for a given video key."""
+    name, _ = os.path.splitext(key)
+    basename = os.path.basename(name)
+    return f"{S3_OUTPUT_PREFIX}Split/{basename}.mp4"
+
+
+def _scores_key_for(key: str) -> str:
+    """Return the scores metadata key for a given video key."""
+    name, _ = os.path.splitext(key)
+    basename = os.path.basename(name)
+    return f"{S3_OUTPUT_PREFIX}Score/{basename}_scores.json"
+
+
+def _config_key_for(key: str) -> str:
+    """Return the config metadata key for a given video key."""
+    name, _ = os.path.splitext(key)
+    basename = os.path.basename(name)
+    return f"{S3_OUTPUT_PREFIX}Config/{basename}_config.json"
+
+
+def _to_s3_http_url(bucket: str, key: str) -> str:
+    """Convert a bucket+key pair to a direct S3 HTTP URL."""
+    base = S3_ENDPOINT.rstrip("/")
+    return f"{base}/{bucket}/{key}"
+
+
+def _fetch_json_from_s3(s3, bucket: str, key: str) -> dict | None:
+    """Fetch and parse a JSON object from S3, or return None if not found."""
+    try:
+        resp = s3.get_object(Bucket=bucket, Key=key)
+        return json.loads(resp["Body"].read().decode("utf-8"))
+    except Exception:
+        return None
 
 
 def _check_already_processed(s3, bucket: str, video_key: str) -> bool:
@@ -315,12 +344,23 @@ def api_list_videos(bucket: str):
     active_jobs = {j["video_key"]: j for j in _get_active_jobs(batch_api, bucket)}
 
     for v in videos:
-        if v["key"] in active_jobs:
-            v["status"] = active_jobs[v["key"]]["status"]
-        elif _check_already_processed(s3, bucket, v["key"]):
+        key = v["key"]
+        if key in active_jobs:
+            v["status"] = active_jobs[key]["status"]
+        elif _check_already_processed(s3, bucket, key):
             v["status"] = "done"
         else:
             v["status"] = "unprocessed"
+
+        # Attach direct S3 HTTP URLs for video player + metadata
+        v["video_url"] = _to_s3_http_url(bucket, key)
+        v["processed_url"] = _to_s3_http_url(bucket, _output_key_for(key))
+        v["scores_url"] = _to_s3_http_url(bucket, _scores_key_for(key))
+        v["config_url"] = _to_s3_http_url(bucket, _config_key_for(key))
+
+        # Inline config if available (used to populate slider defaults)
+        config = _fetch_json_from_s3(s3, bucket, _config_key_for(key))
+        v["config"] = config
 
     return jsonify({"videos": videos})
 

@@ -78,6 +78,23 @@
     <!-- Status toast -->
     <div id="toast" class="hidden"></div>
 
+    <!-- Video preview modal -->
+    <div id="video-modal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <button id="modal-close" class="modal-close" title="Close">
+          &times;
+        </button>
+        <video id="modal-video" controls preload="auto"></video>
+        <div id="modal-placeholder" class="modal-placeholder">
+          Video still not processed
+        </div>
+        <div class="modal-chart-wrapper">
+          <canvas id="modal-chart"></canvas>
+        </div>
+        <div id="modal-stats" class="modal-stats"></div>
+      </div>
+    </div>
+
     <!-- Job list -->
     <section id="jobs-section" class="hidden">
       <h2>Jobs</h2>

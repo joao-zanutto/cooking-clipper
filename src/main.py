@@ -101,27 +101,7 @@ def _run_s3(s3_url: str) -> int:
         storage.download(s3_url, input_path)
         print(f"  ⏱  Download:        {time.time() - t0:.1f}s")
 
-        # 2. Process
-        ok, fps, scores = process_video(input_path, output_path)
-        if not ok:
-            print("  ⛔  No peaks above threshold. Try lowering MOTION_THRESHOLD.")
-            return 1
-
-        # 3. Upload metadata
-        t0 = time.time()
-
-        scores_data = {
-            "fps": fps,
-            "num_frames": len(scores),
-            "duration": len(scores) / fps,
-            "scores": scores.tolist(),
-            "peaks": [
-                [int(s), int(e), float(score)]
-                for s, e, score in find_peaks(scores, fps)
-            ],
-        }
-        storage.upload_json(scores_data, scores_s3_url)
-
+        # 2. Upload config early (so frontend can load slider values immediately)
         from .config import (
             BLANKING_GAP,
             CHANGE_THRESHOLD,
@@ -136,10 +116,32 @@ def _run_s3(s3_url: str) -> int:
             "BLANKING_GAP": BLANKING_GAP,
         }
         storage.upload_json(config_data, config_s3_url)
+        print(f"  ⏱  Upload config:   {time.time() - t0:.1f}s")
 
-        print(f"  ⏱  Upload metadata: {time.time() - t0:.1f}s")
+        # 3. Process
+        ok, fps, scores = process_video(input_path, output_path)
+        if not ok:
+            print("  ⛔  No peaks above threshold. Try lowering MOTION_THRESHOLD.")
+            return 1
 
-        # 4. Upload result video
+        # 4. Upload scores metadata
+        t0 = time.time()
+
+        scores_data = {
+            "fps": fps,
+            "num_frames": len(scores),
+            "duration": len(scores) / fps,
+            "scores": scores.tolist(),
+            "peaks": [
+                [int(s), int(e), float(score)]
+                for s, e, score in find_peaks(scores, fps)
+            ],
+        }
+        storage.upload_json(scores_data, scores_s3_url)
+
+        print(f"  ⏱  Upload scores:   {time.time() - t0:.1f}s")
+
+        # 5. Upload result video
         t0 = time.time()
         storage.upload(output_path, output_s3_url)
         print(f"  ⏱  Upload video:    {time.time() - t0:.1f}s")

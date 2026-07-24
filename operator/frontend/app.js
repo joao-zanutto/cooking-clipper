@@ -121,7 +121,8 @@
       videos = vResp.videos || [];
       jobs = jResp.jobs || [];
 
-      // Restore local slider values that may differ from server defaults
+      // Restore local slider values that may differ from server defaults.
+      // Also load stored config from S3 (inlined by the API) when available.
       videos.forEach((v) => {
         const saved = localParams[v.key];
         if (saved) {
@@ -131,6 +132,14 @@
             v.motion_threshold = saved.motion_threshold;
           if (saved.change_threshold !== undefined)
             v.change_threshold = saved.change_threshold;
+        } else if (v.config) {
+          // Stored config from S3 — use it as slider defaults
+          if (v.config.CLIP_DURATION !== undefined)
+            v.clip_duration = v.config.CLIP_DURATION;
+          if (v.config.MOTION_THRESHOLD !== undefined)
+            v.motion_threshold = v.config.MOTION_THRESHOLD;
+          if (v.config.CHANGE_THRESHOLD !== undefined)
+            v.change_threshold = v.config.CHANGE_THRESHOLD;
         }
       });
 
@@ -180,6 +189,14 @@
               </label>
             </div>
             <div class="actions">
+              <button class="preview-btn preview-original" data-idx="${idx}">
+                View Original
+              </button>
+              <button class="preview-btn preview-processed" data-idx="${idx}"
+                ${status !== "done" ? "disabled" : ""}
+                title="${status !== "done" ? "Video not yet processed" : "View processed video"}">
+                View Processed
+              </button>
               <button class="process-btn" data-idx="${idx}" ${disabled ? "disabled" : ""}>
                 ${disabled ? "Processing…" : "Process"}
               </button>
@@ -191,6 +208,18 @@
     // Attach slider events
     document.querySelectorAll(".param-slider").forEach((sl) => {
       sl.addEventListener("input", onSliderChange);
+    });
+
+    // Attach preview buttons
+    document.querySelectorAll(".preview-original").forEach((btn) => {
+      btn.addEventListener("click", () =>
+        openModal("original", btn.dataset.idx),
+      );
+    });
+    document.querySelectorAll(".preview-processed").forEach((btn) => {
+      btn.addEventListener("click", () =>
+        openModal("processed", btn.dataset.idx),
+      );
     });
 
     // Attach process buttons
@@ -363,6 +392,301 @@
   setInterval(() => {
     if (currentBucket) loadVideos();
   }, 10000);
+
+  // ── Modal ─────────────────────────────────────────────
+  const modal = document.getElementById("video-modal");
+  const modalVideo = document.getElementById("modal-video");
+  const modalClose = document.getElementById("modal-close");
+  const modalChartCanvas = document.getElementById("modal-chart");
+  const modalPlaceholder = document.getElementById("modal-placeholder");
+  const modalStats = document.getElementById("modal-stats");
+
+  let modalScoresData = null;
+  let modalPeaks = [];
+  let modalPlaying = false;
+  let modalRafId = null;
+
+  function openModal(type, idx) {
+    const v = videos[idx];
+    if (!v) return;
+
+    const isProcessed = type === "processed";
+    modal.classList.remove("hidden");
+
+    // Hide chart initially, show placeholder
+    modalChartCanvas.parentElement.style.display = "none";
+    modalPlaceholder.style.display = "block";
+    modalStats.innerHTML = "";
+
+    if (isProcessed && v.status === "done") {
+      // Fetch scores data and render chart
+      modalPlaceholder.textContent = "Loading scores…";
+      fetch(v.scores_url)
+        .then((r) => {
+          if (!r.ok) throw new Error("Scores not found");
+          return r.json();
+        })
+        .then((data) => {
+          modalScoresData = data;
+          modalPlaceholder.style.display = "none";
+          modalChartCanvas.parentElement.style.display = "block";
+          renderModalChart();
+          renderModalStats();
+        })
+        .catch(() => {
+          modalPlaceholder.textContent = "Video still not processed";
+          modalPlaceholder.style.display = "block";
+          modalChartCanvas.parentElement.style.display = "none";
+        });
+      modalVideo.src = v.processed_url;
+    } else {
+      // Original video or unprocessed — no chart
+      modalPlaceholder.textContent = "Video still not processed";
+      modalVideo.src = v.video_url;
+    }
+
+    modalVideo.load();
+    modalVideo.play().catch(() => {});
+  }
+
+  function closeModal() {
+    modal.classList.add("hidden");
+    modalVideo.pause();
+    modalVideo.removeAttribute("src");
+    modalVideo.load();
+    modalScoresData = null;
+    modalPeaks = [];
+    modalPlaying = false;
+    if (modalRafId) {
+      cancelAnimationFrame(modalRafId);
+      modalRafId = null;
+    }
+  }
+
+  modalClose.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.classList.contains("hidden")) closeModal();
+  });
+
+  // ── Chart (vanilla Canvas 2D, mirrors frontend/index.html) ──
+
+  const CHART_HEIGHT = 240;
+  const PAD = {top: 12, right: 16, bottom: 28, left: 52};
+  const DPR = window.devicePixelRatio || 1;
+
+  function dprScale(canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width,
+      h = CHART_HEIGHT;
+    if (
+      canvas.width !== Math.round(w * DPR) ||
+      canvas.height !== Math.round(h * DPR)
+    ) {
+      canvas.width = Math.round(w * DPR);
+      canvas.height = Math.round(h * DPR);
+    }
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    return {ctx, w, h};
+  }
+
+  function getBounds(canvas) {
+    const {ctx, w, h} = dprScale(canvas);
+    return {
+      ctx,
+      w,
+      h,
+      left: PAD.left,
+      right: w - PAD.right,
+      top: PAD.top,
+      bottom: h - PAD.bottom,
+      width: w - PAD.left - PAD.right,
+      height: h - PAD.top - PAD.bottom,
+    };
+  }
+
+  function renderModalChart() {
+    if (!modalScoresData) return;
+    const scores = modalScoresData.scores;
+    if (!scores || !scores.length) return;
+
+    const rawPeaks = modalScoresData.peaks || [];
+    modalPeaks = rawPeaks.map((p) => {
+      const startF = Array.isArray(p) ? p[0] : p.start_frame;
+      const endF = Array.isArray(p) ? p[1] : p.end_frame;
+      const score = Array.isArray(p) ? p[2] : p.score || 0;
+      return {
+        start: startF,
+        end: endF,
+        score,
+        startSec: startF / modalScoresData.fps,
+        endSec: endF / modalScoresData.fps,
+      };
+    });
+
+    drawModalChart();
+
+    // Video playback sync
+    modalVideo.removeEventListener("play", onModalPlay);
+    modalVideo.removeEventListener("pause", onModalPause);
+    modalVideo.removeEventListener("ended", onModalPause);
+    modalVideo.removeEventListener("seeked", onModalSeeked);
+    modalVideo.addEventListener("play", onModalPlay);
+    modalVideo.addEventListener("pause", onModalPause);
+    modalVideo.addEventListener("ended", onModalPause);
+    modalVideo.addEventListener("seeked", onModalSeeked);
+  }
+
+  function onModalPlay() {
+    modalPlaying = true;
+    modalCursorLoop();
+  }
+  function onModalPause() {
+    modalPlaying = false;
+    if (modalRafId) {
+      cancelAnimationFrame(modalRafId);
+      modalRafId = null;
+    }
+  }
+  function onModalSeeked() {
+    drawModalChart();
+  }
+
+  function modalCursorLoop() {
+    if (!modalPlaying) return;
+    drawModalChart();
+    modalRafId = requestAnimationFrame(modalCursorLoop);
+  }
+
+  function drawModalChart() {
+    if (!modalScoresData || !modalScoresData.scores) return;
+    const scores = modalScoresData.scores;
+    const total = scores.length;
+    const maxSc = Math.max(...scores, 1);
+    const b = getBounds(modalChartCanvas);
+    const {ctx} = b;
+
+    ctx.clearRect(0, 0, b.w, b.h);
+
+    // Grid
+    ctx.strokeStyle = "#21262d";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = b.top + (i / 4) * b.height;
+      ctx.beginPath();
+      ctx.moveTo(b.left, y);
+      ctx.lineTo(b.right, y);
+      ctx.stroke();
+    }
+
+    // Clip regions
+    for (const p of modalPeaks) {
+      const x1 = frameToX(p.start, total, b);
+      const x2 = frameToX(p.end, total, b);
+      ctx.fillStyle = "rgba(56,139,253,0.12)";
+      ctx.strokeStyle = "rgba(56,139,253,0.35)";
+      ctx.lineWidth = 1;
+      ctx.fillRect(x1, b.top, x2 - x1, b.height);
+      ctx.strokeRect(x1, b.top, x2 - x1, b.height);
+    }
+
+    // Score line
+    ctx.strokeStyle = "#58a6ff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const step = Math.max(1, Math.floor(total / 2000));
+    for (let i = 0; i < total; i += step) {
+      const x = frameToX(i, total, b);
+      const y = scoreToY(scores[i], maxSc, b);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    if (total > 0 && (total - 1) % step !== 0) {
+      const x = frameToX(total - 1, total, b);
+      const y = scoreToY(scores[total - 1], maxSc, b);
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // X labels
+    ctx.fillStyle = "rgba(139,148,158,0.6)";
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "center";
+    const duration = modalScoresData.duration || total / modalScoresData.fps;
+    const numLabels = Math.max(2, Math.floor(b.width / 80));
+    for (let i = 0; i <= numLabels; i++) {
+      ctx.fillText(
+        ((i / numLabels) * duration).toFixed(1) + "s",
+        b.left + (i / numLabels) * b.width,
+        b.h - 4,
+      );
+    }
+
+    // Y labels
+    ctx.fillStyle = "rgba(139,148,158,0.6)";
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let i = 0; i <= 4; i++) {
+      ctx.fillText(
+        (maxSc * (1 - i / 4)).toFixed(1),
+        b.left - 6,
+        b.top + (i / 4) * b.height,
+      );
+    }
+
+    // Playback cursor
+    const curSec = modalVideo.currentTime || 0;
+    const curFrame = curSec * modalScoresData.fps;
+    const cx = frameToX(curFrame, total, b);
+    ctx.strokeStyle = "#f0f6fc";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, b.top);
+    ctx.lineTo(cx, b.bottom);
+    ctx.stroke();
+  }
+
+  function frameToX(frame, total, b) {
+    return total > 1 ? b.left + (frame / (total - 1)) * b.width : b.left;
+  }
+
+  function scoreToY(score, maxSc, b) {
+    return b.bottom - (score / maxSc) * b.height;
+  }
+
+  // Click-to-seek on chart
+  modalChartCanvas.addEventListener("click", (e) => {
+    if (!modalScoresData) return;
+    const rect = modalChartCanvas.getBoundingClientRect();
+    const b = getBounds(modalChartCanvas);
+    const relX = (e.clientX - rect.left - b.left) / b.width;
+    const frame = Math.round(
+      Math.max(0, Math.min(1, relX)) * (modalScoresData.num_frames - 1),
+    );
+    modalVideo.currentTime = frame / modalScoresData.fps;
+  });
+
+  function renderModalStats() {
+    if (!modalScoresData) return;
+    const d = modalScoresData;
+    const peaks = modalPeaks || [];
+    let html = `
+      <span>Frames: <strong>${(d.num_frames || d.scores.length).toLocaleString()}</strong></span>
+      <span>FPS: <strong>${d.fps.toFixed(2)}</strong></span>
+      <span>Duration: <strong>${(d.duration || d.scores.length / d.fps).toFixed(1)}s</strong></span>
+      <span>Clips: <strong>${peaks.length}</strong></span>`;
+    if (peaks.length) {
+      const totalClipSec = peaks.reduce(
+        (s, p) => s + (p.endSec - p.startSec),
+        0,
+      );
+      html += `<span>Clips total: <strong>${totalClipSec.toFixed(1)}s</strong></span>`;
+    }
+    modalStats.innerHTML = html;
+  }
 
   // ── Init ─────────────────────────────────────────────
   loadBuckets();
