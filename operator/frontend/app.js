@@ -100,7 +100,11 @@
     // Snapshot current local slider values before fetching
     const localParams = {};
     videos.forEach((v, i) => {
-      if (v.clip_duration !== undefined || v.motion_threshold !== undefined || v.change_threshold !== undefined) {
+      if (
+        v.clip_duration !== undefined ||
+        v.motion_threshold !== undefined ||
+        v.change_threshold !== undefined
+      ) {
         localParams[v.key] = {
           clip_duration: v.clip_duration,
           motion_threshold: v.motion_threshold,
@@ -121,9 +125,12 @@
       videos.forEach((v) => {
         const saved = localParams[v.key];
         if (saved) {
-          if (saved.clip_duration !== undefined) v.clip_duration = saved.clip_duration;
-          if (saved.motion_threshold !== undefined) v.motion_threshold = saved.motion_threshold;
-          if (saved.change_threshold !== undefined) v.change_threshold = saved.change_threshold;
+          if (saved.clip_duration !== undefined)
+            v.clip_duration = saved.clip_duration;
+          if (saved.motion_threshold !== undefined)
+            v.motion_threshold = saved.motion_threshold;
+          if (saved.change_threshold !== undefined)
+            v.change_threshold = saved.change_threshold;
         }
       });
 
