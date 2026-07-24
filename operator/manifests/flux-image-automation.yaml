@@ -32,8 +32,8 @@ spec:
   filterTags:
     pattern: "^sha-[a-f0-9]{40}$"
   policy:
-    semver:
-      range: ">=0.0.0"
+    alphabetical:
+      order: asc
 ---
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImagePolicy
@@ -46,8 +46,8 @@ spec:
   filterTags:
     pattern: "^sha-[a-f0-9]{40}$"
   policy:
-    semver:
-      range: ">=0.0.0"
+    alphabetical:
+      order: asc
 ---
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageUpdateAutomation
