@@ -30,9 +30,9 @@ spec:
   imageRepositoryRef:
     name: cooking-clipper-operator
   filterTags:
-    pattern: "^sha-[a-f0-9]{40}$"
+    pattern: "^\\d+$"
   policy:
-    alphabetical:
+    numerical:
       order: asc
 ---
 apiVersion: image.toolkit.fluxcd.io/v1
@@ -44,9 +44,9 @@ spec:
   imageRepositoryRef:
     name: cooking-clipper
   filterTags:
-    pattern: "^sha-[a-f0-9]{40}$"
+    pattern: "^\\d+$"
   policy:
-    alphabetical:
+    numerical:
       order: asc
 ---
 apiVersion: image.toolkit.fluxcd.io/v1

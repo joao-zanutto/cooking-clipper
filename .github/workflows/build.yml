@@ -38,6 +38,7 @@ jobs:
           tags: |
             ${{ env.CLIPPER_IMAGE }}:latest
             ${{ env.CLIPPER_IMAGE }}:sha-${{ github.sha }}
+            ${{ env.CLIPPER_IMAGE }}:${{ github.run_number }}
 
       # ── Build & push operator image ──
       - name: Build & push cooking-clipper-operator
@@ -49,3 +50,4 @@ jobs:
           tags: |
             ${{ env.OPERATOR_IMAGE }}:latest
             ${{ env.OPERATOR_IMAGE }}:sha-${{ github.sha }}
+            ${{ env.OPERATOR_IMAGE }}:${{ github.run_number }}
