@@ -8,20 +8,20 @@
   let jobs = [];
 
   // ── DOM refs ─────────────────────────────────────────
-  const bucketSelect  = document.getElementById("bucket-select");
-  const refreshBtn   = document.getElementById("refresh-btn");
-  const mainEl       = document.getElementById("main");
-  const videoGrid    = document.getElementById("video-grid");
-  const batchBar     = document.getElementById("batch-bar");
-  const jobsSection  = document.getElementById("jobs-section");
-  const jobList      = document.getElementById("job-list");
-  const toast        = document.getElementById("toast");
+  const bucketSelect = document.getElementById("bucket-select");
+  const refreshBtn = document.getElementById("refresh-btn");
+  const mainEl = document.getElementById("main");
+  const videoGrid = document.getElementById("video-grid");
+  const batchBar = document.getElementById("batch-bar");
+  const jobsSection = document.getElementById("jobs-section");
+  const jobList = document.getElementById("job-list");
+  const toast = document.getElementById("toast");
 
   // Batch param inputs
-  const batchClip   = document.getElementById("batch-clip");
+  const batchClip = document.getElementById("batch-clip");
   const batchMotion = document.getElementById("batch-motion");
   const batchChange = document.getElementById("batch-change");
-  const batchClipVal   = document.getElementById("batch-clip-val");
+  const batchClipVal = document.getElementById("batch-clip-val");
   const batchMotionVal = document.getElementById("batch-motion-val");
   const batchChangeVal = document.getElementById("batch-change-val");
 
@@ -60,12 +60,12 @@
   async function apiPost(path, body) {
     const r = await fetch(path, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json"},
       body: JSON.stringify(body),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || r.statusText);
-    return { status: r.status, data };
+    return {status: r.status, data};
   }
 
   // ── Load buckets ─────────────────────────────────────
@@ -76,7 +76,9 @@
       const buckets = resp.buckets || [];
       bucketSelect.innerHTML =
         '<option value="">— Select —</option>' +
-        buckets.map((b) => `<option value="${b.name}">${b.name}</option>`).join("");
+        buckets
+          .map((b) => `<option value="${b.name}">${b.name}</option>`)
+          .join("");
       if (currentBucket) bucketSelect.value = currentBucket;
     } catch (e) {
       showToast("Failed to load buckets: " + e.message, "error");
@@ -87,7 +89,8 @@
 
   async function loadVideos() {
     if (!currentBucket) {
-      mainEl.innerHTML = '<div class="placeholder">Select a project to see videos</div>';
+      mainEl.innerHTML =
+        '<div class="placeholder">Select a project to see videos</div>';
       videoGrid.classList.add("hidden");
       batchBar.classList.add("hidden");
       jobsSection.classList.add("hidden");
@@ -187,9 +190,12 @@
     if (valEl) valEl.textContent = sl.value;
     // Store on the video object
     if (videos[idx]) {
-      const key = param === "clip" ? "clip_duration"
-                : param === "motion" ? "motion_threshold"
-                : "change_threshold";
+      const key =
+        param === "clip"
+          ? "clip_duration"
+          : param === "motion"
+            ? "motion_threshold"
+            : "change_threshold";
       videos[idx][key] = parseFloat(sl.value);
     }
   }
@@ -205,12 +211,15 @@
     e.target.textContent = "Starting…";
 
     try {
-      const result = await apiPost(`/api/buckets/${encodeURIComponent(currentBucket)}/process`, {
-        key: v.key,
-        clip_duration: v.clip_duration || undefined,
-        motion_threshold: v.motion_threshold || undefined,
-        change_threshold: v.change_threshold || undefined,
-      });
+      const result = await apiPost(
+        `/api/buckets/${encodeURIComponent(currentBucket)}/process`,
+        {
+          key: v.key,
+          clip_duration: v.clip_duration || undefined,
+          motion_threshold: v.motion_threshold || undefined,
+          change_threshold: v.change_threshold || undefined,
+        },
+      );
       showToast(`Started: ${v.key}`, "success");
       // Refresh after a moment
       setTimeout(loadVideos, 1000);
@@ -225,7 +234,8 @@
 
   function renderJobs() {
     if (!jobs.length) {
-      jobList.innerHTML = "<div style='color:var(--text-dim)'>No recent jobs</div>";
+      jobList.innerHTML =
+        "<div style='color:var(--text-dim)'>No recent jobs</div>";
       return;
     }
     jobList.innerHTML = jobs
@@ -235,7 +245,7 @@
           <span class="${statusClass(j.status)}">${j.status}</span>
           <span class="job-name">${escHtml(j.name)}</span>
           <span class="job-key">${escHtml(j.video_key)}</span>
-        </div>`
+        </div>`,
       )
       .join("");
   }
@@ -243,7 +253,7 @@
   // ── Apply all ────────────────────────────────────────
 
   document.getElementById("apply-all-btn").addEventListener("click", () => {
-    const clip   = parseFloat(batchClip.value);
+    const clip = parseFloat(batchClip.value);
     const motion = parseFloat(batchMotion.value);
     const change = parseInt(batchChange.value, 10);
 
@@ -270,37 +280,48 @@
 
   // ── Process all unprocessed ──────────────────────────
 
-  document.getElementById("process-all-btn").addEventListener("click", async () => {
-    const unprocessed = videos.filter((v) => v.status === "unprocessed");
-    if (!unprocessed.length) {
-      showToast("No unprocessed videos", "");
-      return;
-    }
-    showToast(`Starting ${unprocessed.length} jobs…`, "");
-
-    let started = 0;
-    for (const v of unprocessed) {
-      try {
-        await apiPost(`/api/buckets/${encodeURIComponent(currentBucket)}/process`, {
-          key: v.key,
-          clip_duration: v.clip_duration || undefined,
-          motion_threshold: v.motion_threshold || undefined,
-          change_threshold: v.change_threshold || undefined,
-        });
-        started++;
-      } catch (e) {
-        console.error("Failed to start", v.key, e);
+  document
+    .getElementById("process-all-btn")
+    .addEventListener("click", async () => {
+      const unprocessed = videos.filter((v) => v.status === "unprocessed");
+      if (!unprocessed.length) {
+        showToast("No unprocessed videos", "");
+        return;
       }
-    }
-    showToast(`Started ${started}/${unprocessed.length} jobs`, "success");
-    setTimeout(loadVideos, 1500);
-  });
+      showToast(`Starting ${unprocessed.length} jobs…`, "");
+
+      let started = 0;
+      for (const v of unprocessed) {
+        try {
+          await apiPost(
+            `/api/buckets/${encodeURIComponent(currentBucket)}/process`,
+            {
+              key: v.key,
+              clip_duration: v.clip_duration || undefined,
+              motion_threshold: v.motion_threshold || undefined,
+              change_threshold: v.change_threshold || undefined,
+            },
+          );
+          started++;
+        } catch (e) {
+          console.error("Failed to start", v.key, e);
+        }
+      }
+      showToast(`Started ${started}/${unprocessed.length} jobs`, "success");
+      setTimeout(loadVideos, 1500);
+    });
 
   // ── Batch slider display ─────────────────────────────
 
-  batchClip.addEventListener("input", () => { batchClipVal.textContent = batchClip.value; });
-  batchMotion.addEventListener("input", () => { batchMotionVal.textContent = batchMotion.value; });
-  batchChange.addEventListener("input", () => { batchChangeVal.textContent = batchChange.value; });
+  batchClip.addEventListener("input", () => {
+    batchClipVal.textContent = batchClip.value;
+  });
+  batchMotion.addEventListener("input", () => {
+    batchMotionVal.textContent = batchMotion.value;
+  });
+  batchChange.addEventListener("input", () => {
+    batchChangeVal.textContent = batchChange.value;
+  });
 
   // ── Bucket selection ─────────────────────────────────
 

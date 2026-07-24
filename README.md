@@ -150,11 +150,11 @@ The processing **Job** uses the **main** `Dockerfile` (at repo root) — the sam
 
 ## API endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | Serves frontend SPA |
-| GET | `/api/buckets` | List all S3 buckets |
-| GET | `/api/buckets/{name}/videos` | List videos with processing status |
-| GET | `/api/buckets/{name}/jobs` | List recent jobs |
-| POST | `/api/buckets/{name}/process` | Trigger a Job `{key, clip_duration?, motion_threshold?, change_threshold?}` |
-| GET | `/api/status` | Health check |
+| Method | Path                          | Description                                                                 |
+| ------ | ----------------------------- | --------------------------------------------------------------------------- |
+| GET    | `/`                           | Serves frontend SPA                                                         |
+| GET    | `/api/buckets`                | List all S3 buckets                                                         |
+| GET    | `/api/buckets/{name}/videos`  | List videos with processing status                                          |
+| GET    | `/api/buckets/{name}/jobs`    | List recent jobs                                                            |
+| POST   | `/api/buckets/{name}/process` | Trigger a Job `{key, clip_duration?, motion_threshold?, change_threshold?}` |
+| GET    | `/api/status`                 | Health check                                                                |

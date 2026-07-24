@@ -1,4 +1,10 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
   --bg: #0f1117;
@@ -16,7 +22,8 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -34,7 +41,10 @@ header {
   gap: 1rem;
 }
 
-header h1 { font-size: 1.3rem; font-weight: 600; }
+header h1 {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
 
 .header-controls {
   display: flex;
@@ -42,7 +52,10 @@ header h1 { font-size: 1.3rem; font-weight: 600; }
   gap: 1rem;
 }
 
-.header-controls label { font-size: 0.9rem; color: var(--text-dim); }
+.header-controls label {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
 
 #bucket-select {
   background: var(--surface2);
@@ -63,7 +76,9 @@ header h1 { font-size: 1.3rem; font-weight: 600; }
   cursor: pointer;
   font-size: 1.1rem;
 }
-#refresh-btn:hover { background: var(--border); }
+#refresh-btn:hover {
+  background: var(--border);
+}
 
 /* ── Batch bar ───────────────────────────────────────── */
 #batch-bar {
@@ -77,7 +92,11 @@ header h1 { font-size: 1.3rem; font-weight: 600; }
   gap: 1rem;
 }
 
-.batch-params { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.batch-params {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
 
 .batch-params label {
   font-size: 0.8rem;
@@ -99,7 +118,10 @@ header h1 { font-size: 1.3rem; font-weight: 600; }
   display: inline-block;
 }
 
-.batch-actions { display: flex; gap: 0.5rem; }
+.batch-actions {
+  display: flex;
+  gap: 0.5rem;
+}
 
 .batch-actions button {
   background: var(--surface2);
@@ -110,14 +132,18 @@ header h1 { font-size: 1.3rem; font-weight: 600; }
   cursor: pointer;
   font-size: 0.8rem;
 }
-.batch-actions button:hover { background: var(--border); }
+.batch-actions button:hover {
+  background: var(--border);
+}
 
 #process-all-btn {
   background: var(--accent);
   color: #fff;
   border: none;
 }
-#process-all-btn:hover { background: var(--accent-hover); }
+#process-all-btn:hover {
+  background: var(--accent-hover);
+}
 
 /* ── Placeholder ─────────────────────────────────────── */
 .placeholder {
@@ -201,7 +227,9 @@ header h1 { font-size: 1.3rem; font-weight: 600; }
   font-size: 0.8rem;
   font-weight: 500;
 }
-.video-card .actions button:hover { background: var(--accent-hover); }
+.video-card .actions button:hover {
+  background: var(--accent-hover);
+}
 .video-card .actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -216,11 +244,23 @@ header h1 { font-size: 1.3rem; font-weight: 600; }
   border-radius: 4px;
   text-transform: uppercase;
 }
-.status-unprocessed { background: var(--surface2); color: var(--text-dim); }
-.status-running    { background: #1e3a5f; color: var(--accent); }
+.status-unprocessed {
+  background: var(--surface2);
+  color: var(--text-dim);
+}
+.status-running {
+  background: #1e3a5f;
+  color: var(--accent);
+}
 .status-succeeded,
-.status-done       { background: #064e3b; color: var(--green); }
-.status-failed     { background: #450a0a; color: var(--red); }
+.status-done {
+  background: #064e3b;
+  color: var(--green);
+}
+.status-failed {
+  background: #450a0a;
+  color: var(--red);
+}
 
 /* ── Toast ───────────────────────────────────────────── */
 #toast {
@@ -234,12 +274,19 @@ header h1 { font-size: 1.3rem; font-weight: 600; }
   font-size: 0.9rem;
   z-index: 100;
   max-width: 400px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   transition: opacity 0.3s;
 }
-#toast.hidden { opacity: 0; pointer-events: none; }
-#toast.error   { border-color: var(--red); }
-#toast.success { border-color: var(--green); }
+#toast.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+#toast.error {
+  border-color: var(--red);
+}
+#toast.success {
+  border-color: var(--green);
+}
 
 /* ── Jobs section ────────────────────────────────────── */
 #jobs-section {
@@ -269,8 +316,17 @@ header h1 { font-size: 1.3rem; font-weight: 600; }
   gap: 1rem;
 }
 
-.job-row .job-name { flex: 1; word-break: break-all; }
-.job-row .job-key  { color: var(--text-dim); flex: 2; word-break: break-all; }
+.job-row .job-name {
+  flex: 1;
+  word-break: break-all;
+}
+.job-row .job-key {
+  color: var(--text-dim);
+  flex: 2;
+  word-break: break-all;
+}
 
 /* ── Hidden ──────────────────────────────────────────── */
-.hidden { display: none !important; }
+.hidden {
+  display: none !important;
+}
