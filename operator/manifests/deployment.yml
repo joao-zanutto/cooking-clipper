@@ -19,10 +19,12 @@ spec:
         component: operator
     spec:
       serviceAccountName: cooking-clipper-operator
+      imagePullSecrets:
+        - name: ghcr-cred
       containers:
         - name: operator
-          image: cooking-clipper-operator:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/joao-zanutto/cooking-clipper-operator:latest # {"$imagepolicy": "flux-system:cooking-clipper-operator"}
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
               name: http
@@ -41,11 +43,9 @@ spec:
               value: "http://192.168.15.14:9333"
             # Job configuration
             - name: JOB_IMAGE
-              value: "cooking-clipper:latest"
+              value: "ghcr.io/joao-zanutto/cooking-clipper:latest" # {"$imagepolicy": "flux-system:cooking-clipper"}
             - name: JOB_IMAGE_PULL_POLICY
-              value: "IfNotPresent"
-            - name: MAX_CONCURRENT
-              value: "4"
+              value: "Always"
             - name: OPERATOR_PORT
               value: "8080"
           resources:

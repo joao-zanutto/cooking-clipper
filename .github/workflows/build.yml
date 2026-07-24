@@ -1,0 +1,51 @@
+name: Build and push images
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  OPERATOR_IMAGE: ghcr.io/joao-zanutto/cooking-clipper-operator
+  CLIPPER_IMAGE: ghcr.io/joao-zanutto/cooking-clipper
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── Build & push processing image ──
+      - name: Build & push cooking-clipper
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ env.CLIPPER_IMAGE }}:latest
+            ${{ env.CLIPPER_IMAGE }}:sha-${{ github.sha }}
+
+      # ── Build & push operator image ──
+      - name: Build & push cooking-clipper-operator
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: operator/Dockerfile
+          push: true
+          tags: |
+            ${{ env.OPERATOR_IMAGE }}:latest
+            ${{ env.OPERATOR_IMAGE }}:sha-${{ github.sha }}

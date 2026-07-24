@@ -34,10 +34,9 @@ S3_OUTPUT_PREFIX = os.getenv("S3_OUTPUT_PREFIX", "_output/")
 SEAWEEDFS_MASTER_URL = os.getenv("SEAWEEDFS_MASTER_URL", "")
 
 NAMESPACE = os.getenv("OPERATOR_NAMESPACE", "cooking-clipper")
-JOB_IMAGE = os.getenv("JOB_IMAGE", "cooking-clipper:latest")
+JOB_IMAGE = os.getenv("JOB_IMAGE", "ghcr.io/joao-zanutto/cooking-clipper:latest")
 JOB_IMAGE_PULL_POLICY = os.getenv("JOB_IMAGE_PULL_POLICY", "IfNotPresent")
 JOB_TTL_SECONDS = int(os.getenv("JOB_TTL_SECONDS", "300"))
-MAX_CONCURRENT = int(os.getenv("MAX_CONCURRENT", "4"))
 
 HOST = os.getenv("OPERATOR_HOST", "0.0.0.0")
 PORT = int(os.getenv("OPERATOR_PORT", "8080"))
@@ -361,12 +360,6 @@ def api_process_video(bucket: str):
     if _check_already_processed(s3, bucket, video_key):
         return jsonify({"warning": "Already processed", "key": video_key}), 200
 
-    # Check concurrency
-    batch_api = client.BatchV1Api()
-    active = _get_active_jobs(batch_api, bucket)
-    if len(active) >= MAX_CONCURRENT:
-        return jsonify({"error": f"Concurrency limit {MAX_CONCURRENT} reached"}), 429
-
     # Build and create the Job
     manifest = _build_job_manifest(
         bucket,
@@ -431,7 +424,6 @@ def main():
     log.info("  S3 Endpoint:  %s", S3_ENDPOINT)
     log.info("  Job Image:    %s", JOB_IMAGE)
     log.info("  Namespace:    %s", NAMESPACE)
-    log.info("  Max Concurrent: %d", MAX_CONCURRENT)
     log.info("  Listening on:  %s:%d", args.host, args.port)
 
     # Load Kubernetes config

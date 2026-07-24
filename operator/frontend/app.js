@@ -290,10 +290,9 @@
       }
       showToast(`Starting ${unprocessed.length} jobs…`, "");
 
-      let started = 0;
-      for (const v of unprocessed) {
-        try {
-          await apiPost(
+      const results = await Promise.allSettled(
+        unprocessed.map((v) =>
+          apiPost(
             `/api/buckets/${encodeURIComponent(currentBucket)}/process`,
             {
               key: v.key,
@@ -301,12 +300,10 @@
               motion_threshold: v.motion_threshold || undefined,
               change_threshold: v.change_threshold || undefined,
             },
-          );
-          started++;
-        } catch (e) {
-          console.error("Failed to start", v.key, e);
-        }
-      }
+          ),
+        ),
+      );
+      const started = results.filter((r) => r.status === "fulfilled").length;
       showToast(`Started ${started}/${unprocessed.length} jobs`, "success");
       setTimeout(loadVideos, 1500);
     });

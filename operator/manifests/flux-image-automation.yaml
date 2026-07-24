@@ -1,0 +1,69 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: cooking-clipper-operator
+  namespace: flux-system
+spec:
+  image: ghcr.io/joao-zanutto/cooking-clipper-operator
+  interval: 5m
+  secretRef:
+    name: flux-regcred
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: cooking-clipper
+  namespace: flux-system
+spec:
+  image: ghcr.io/joao-zanutto/cooking-clipper
+  interval: 5m
+  secretRef:
+    name: flux-regcred
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: cooking-clipper-operator
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: cooking-clipper-operator
+  filterTags:
+    pattern: '^sha-[a-f0-9]{40}$'
+  policy:
+    semver:
+      range: '>=0.0.0'
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: cooking-clipper
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: cooking-clipper
+  filterTags:
+    pattern: '^sha-[a-f0-9]{40}$'
+  policy:
+    semver:
+      range: '>=0.0.0'
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageUpdateAutomation
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    commit:
+      author:
+        name: flux-automation
+        email: flux@cooking-clipper
+  update:
+    strategy: setters
+    path: ./operator/manifests
