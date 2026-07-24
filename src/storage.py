@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError, EndpointConnectionError
 from .config import (
     S3_ACCESS_KEY_ID,
     S3_ENDPOINT,
+    S3_OUTPUT_PREFIX,
     S3_REGION,
     S3_SECRET_ACCESS_KEY,
     S3_SPLIT_SUFFIX,
@@ -36,42 +37,43 @@ def build_s3_url(bucket: str, key: str) -> str:
 
 
 def _prefix_key_for(key: str, prefix: str, ext: str = ".json") -> str:
-    """Prepend *prefix* to the filename (flat key, no directory).
+    """Build a key under ``S3_OUTPUT_PREFIX``.
 
-    SeaweedFS S3 API on port 8333 rejects PUT requests to any key that
-    contains ``/``, so we use flat keys with a dash separator.
+    ``videos/video.mp4`` → ``_output/{prefix}/video{ext}``
     """
     name, _ = os.path.splitext(key)
-    new_name = f"{name}{ext}"
-    return f"{prefix}-{new_name}"
+    # Keep only the basename — strip any directory part from the input key
+    basename = os.path.basename(name)
+    return f"{S3_OUTPUT_PREFIX}{prefix}/{basename}{ext}"
 
 
 def scores_key_for(key: str) -> str:
     """S3 key for the motion-scores JSON.
 
-    ``videos/video.mp4`` → ``videos/_Score/video_scores.json``
+    ``videos/video.mp4`` → ``_output/Score/video_scores.json``
     """
-    return _prefix_key_for(key, "_Score", "_scores.json")
+    return _prefix_key_for(key, "Score", "_scores.json")
 
 
 def config_key_for(key: str) -> str:
     """S3 key for the processing-config JSON.
 
-    ``videos/video.mp4`` → ``videos/_Config/video_config.json``
+    ``videos/video.mp4`` → ``_output/Config/video_config.json``
     """
-    return _prefix_key_for(key, "_Config", "_config.json")
+    return _prefix_key_for(key, "Config", "_config.json")
 
 
 def output_key_for(key: str) -> str:
-    """Prepend ``S3_SPLIT_SUFFIX`` with a ``.mp4`` extension.
+    """S3 key for the output highlight video.
 
     The extracted clips are always re-encoded to H.264/AAC in an ``.mp4``
     container for universal playback compatibility.
 
-    Example: ``IMG_0128.mov`` → ``_Split-IMG_0128.mp4``
+    Example: ``videos/IMG_0128.mov`` → ``_output/Split/IMG_0128.mp4``
     """
     name, _ = os.path.splitext(key)
-    return f"{S3_SPLIT_SUFFIX}-{name}.mp4"
+    basename = os.path.basename(name)
+    return f"{S3_OUTPUT_PREFIX}Split/{basename}.mp4"
 
 
 # 10 GB threshold — effectively disables multipart for any reasonable file.
@@ -103,10 +105,26 @@ class S3Storage:
             aws_secret_access_key=S3_SECRET_ACCESS_KEY or None,
             config=BotoConfig(
                 connect_timeout=30,
-                read_timeout=60,
+                read_timeout=120,
                 retries={"max_attempts": 3},
             ),
         )
+
+    # ── Folder markers ────────────────────────────────────────────────
+    def _ensure_prefix(self, bucket: str, key: str) -> None:
+        """Create zero-byte folder markers for each path component of *key*.
+
+        SeaweedFS S3 needs these markers before ``put_object`` with ``/`` in
+        the key will succeed.  This is idempotent — existing markers are
+        silently overwritten.
+        """
+        parts = key.split("/")
+        for i in range(1, len(parts)):
+            prefix = "/".join(parts[:i]) + "/"
+            try:
+                self._client.put_object(Bucket=bucket, Key=prefix, Body=b"")
+            except Exception:
+                pass  # best-effort; marker may already exist
 
     # ── Upload via transfer manager ──────────────────────────────────
     def _upload_bytes(
@@ -160,6 +178,7 @@ class S3Storage:
         bucket, key = parse_s3_url(s3_url)
         endpoint = self._client.meta.endpoint_url
         print(f"    ↑ Uploading  → s3://{bucket}/{key}")
+        self._ensure_prefix(bucket, key)
 
         try:
             try:
@@ -181,9 +200,15 @@ class S3Storage:
         return s3_url
 
     def upload_json(self, data: dict, s3_url: str) -> str:
-        """Serialize *data* as JSON and upload via boto3 ``put_object``."""
+        """Serialize *data* as JSON and upload via ``upload_fileobj``.
+
+        Uses the transfer manager (``upload_fileobj``) instead of raw
+        ``put_object`` because SeaweedFS returns ``InternalError`` on
+        ``put_object`` for keys containing ``/``.
+        """
         bucket, key = parse_s3_url(s3_url)
         body = json.dumps(data, separators=(",", ":")).encode("utf-8")
         print(f"    ↑ Uploading  → s3://{bucket}/{key}")
-        self._client.put_object(Bucket=bucket, Key=key, Body=body)
+        self._ensure_prefix(bucket, key)
+        self._upload_bytes(body, bucket, key, content_type="application/json")
         return s3_url

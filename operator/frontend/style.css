@@ -1,0 +1,276 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #242837;
+  --border: #2e3348;
+  --text: #e1e4ed;
+  --text-dim: #8b90a5;
+  --accent: #4f8cff;
+  --accent-hover: #3a6fd8;
+  --green: #34d399;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --radius: 8px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Header ──────────────────────────────────────────── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+header h1 { font-size: 1.3rem; font-weight: 600; }
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-controls label { font-size: 0.9rem; color: var(--text-dim); }
+
+#bucket-select {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  min-width: 200px;
+}
+
+#refresh-btn {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+#refresh-btn:hover { background: var(--border); }
+
+/* ── Batch bar ───────────────────────────────────────── */
+#batch-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.8rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.batch-params { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+
+.batch-params label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.batch-params input[type="range"] {
+  width: 100px;
+  accent-color: var(--accent);
+}
+
+.batch-params span {
+  color: var(--text);
+  font-weight: 600;
+  min-width: 2.5em;
+  display: inline-block;
+}
+
+.batch-actions { display: flex; gap: 0.5rem; }
+
+.batch-actions button {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.batch-actions button:hover { background: var(--border); }
+
+#process-all-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+}
+#process-all-btn:hover { background: var(--accent-hover); }
+
+/* ── Placeholder ─────────────────────────────────────── */
+.placeholder {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+}
+
+/* ── Video grid ──────────────────────────────────────── */
+#video-grid {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.video-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.video-card .name {
+  font-weight: 500;
+  word-break: break-all;
+  font-size: 0.9rem;
+}
+
+.video-card .meta {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  display: flex;
+  gap: 1rem;
+}
+
+.video-card .params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+}
+
+.video-card .params label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 80px;
+}
+
+.video-card .params input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.video-card .params .val {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.video-card .actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.video-card .actions button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.video-card .actions button:hover { background: var(--accent-hover); }
+.video-card .actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Status badges */
+.status {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.status-unprocessed { background: var(--surface2); color: var(--text-dim); }
+.status-running    { background: #1e3a5f; color: var(--accent); }
+.status-succeeded,
+.status-done       { background: #064e3b; color: var(--green); }
+.status-failed     { background: #450a0a; color: var(--red); }
+
+/* ── Toast ───────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.8rem 1.2rem;
+  font-size: 0.9rem;
+  z-index: 100;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  transition: opacity 0.3s;
+}
+#toast.hidden { opacity: 0; pointer-events: none; }
+#toast.error   { border-color: var(--red); }
+#toast.success { border-color: var(--green); }
+
+/* ── Jobs section ────────────────────────────────────── */
+#jobs-section {
+  padding: 0 1.5rem 2rem;
+}
+#jobs-section h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-dim);
+}
+
+#job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.job-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.8rem;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.job-row .job-name { flex: 1; word-break: break-all; }
+.job-row .job-key  { color: var(--text-dim); flex: 2; word-break: break-all; }
+
+/* ── Hidden ──────────────────────────────────────────── */
+.hidden { display: none !important; }
