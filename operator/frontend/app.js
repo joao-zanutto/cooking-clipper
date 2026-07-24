@@ -292,15 +292,12 @@
 
       const results = await Promise.allSettled(
         unprocessed.map((v) =>
-          apiPost(
-            `/api/buckets/${encodeURIComponent(currentBucket)}/process`,
-            {
-              key: v.key,
-              clip_duration: v.clip_duration || undefined,
-              motion_threshold: v.motion_threshold || undefined,
-              change_threshold: v.change_threshold || undefined,
-            },
-          ),
+          apiPost(`/api/buckets/${encodeURIComponent(currentBucket)}/process`, {
+            key: v.key,
+            clip_duration: v.clip_duration || undefined,
+            motion_threshold: v.motion_threshold || undefined,
+            change_threshold: v.change_threshold || undefined,
+          }),
         ),
       );
       const started = results.filter((r) => r.status === "fulfilled").length;
