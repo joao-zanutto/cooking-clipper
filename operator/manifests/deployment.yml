@@ -23,7 +23,7 @@ spec:
         - name: ghcr-cred
       containers:
         - name: operator
-          image: ghcr.io/joao-zanutto/cooking-clipper-operator:11 # {"$imagepolicy": "flux-system:cooking-clipper-operator"}
+          image: ghcr.io/joao-zanutto/cooking-clipper-operator:12 # {"$imagepolicy": "flux-system:cooking-clipper-operator"}
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
